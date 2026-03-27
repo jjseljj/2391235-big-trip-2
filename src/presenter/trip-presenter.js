@@ -3,44 +3,60 @@ import FiltersView from '../view/filters-view.js';
 import SortView from '../view/sort-view.js';
 import PointView from '../view/point-view.js';
 import EditPointView from '../view/edit-point-view.js';
-import NewPointView from '../view/new-point-view.js';
-
-/**
- * Trip Presenter
- * Презентер страницы маршрута (Trip)
- *
- * Отвечает за:
- * - инициализацию и отрисовку всех View компонентов
- * - управление расположением компонентов на странице
- *
- * Рендерит:
- * - FiltersView (фильтры)
- * - SortView (сортировка)
- * - NewPointView (форма создания)
- * - EditPointView (форма редактирования)
- * - PointView (карточки событий)
- *
- * Использует функцию render() для вставки элементов в DOM
- */
 
 export default class TripPresenter {
   #tripControlsFiltersContainer = null;
   #tripEventsContainer = null;
   #tripEventsListContainer = null;
+  #pointModel = null;
 
-  constructor({tripControlsFiltersContainer, tripEventsContainer, tripEventsListContainer}) {
+  constructor({tripControlsFiltersContainer, tripEventsContainer, tripEventsListContainer, pointModel}) {
     this.#tripControlsFiltersContainer = tripControlsFiltersContainer;
     this.#tripEventsContainer = tripEventsContainer;
     this.#tripEventsListContainer = tripEventsListContainer;
+    this.#pointModel = pointModel;
+  }
+
+  #createPointForView(point) {
+    const destination = this.#pointModel.destinations.find((item) => item.id === point.destinationId) || {
+      name: '',
+      description: '',
+      pictures: []
+    };
+
+    const offersByType = this.#pointModel.offers.filter((offer) => offer.type === point.type);
+
+    const offers = offersByType.map((offer) => ({
+      ...offer,
+      isChecked: point.offerIds.includes(offer.id)
+    }));
+
+    return {
+      ...point,
+      destination,
+      offers
+    };
   }
 
   init() {
     render(new FiltersView(), this.#tripControlsFiltersContainer);
     render(new SortView(), this.#tripEventsContainer, RenderPosition.AFTERBEGIN);
-    render(new NewPointView(), this.#tripEventsListContainer, RenderPosition.AFTERBEGIN);
-    render(new EditPointView(), this.#tripEventsListContainer, RenderPosition.AFTERBEGIN);
-    render(new PointView(), this.#tripEventsListContainer);
-    render(new PointView(), this.#tripEventsListContainer);
-    render(new PointView(), this.#tripEventsListContainer);
+
+    const firstPoint = this.#createPointForView(this.#pointModel.points[0]);
+
+    render(
+      new EditPointView({point: firstPoint}),
+      this.#tripEventsListContainer,
+      RenderPosition.AFTERBEGIN
+    );
+
+    this.#pointModel.points.forEach((point) => {
+      const pointForView = this.#createPointForView(point);
+
+      render(
+        new PointView({point: pointForView}),
+        this.#tripEventsListContainer
+      );
+    });
   }
 }

@@ -24,16 +24,22 @@ export default class TripPresenter {
       pictures: []
     };
 
-    const offersByType = this.#pointModel.offers.filter((offer) => offer.type === point.type);
+    const offersByType = this.#pointModel.offers.find((item) => item.type === point.type);
+    const availableOffers = offersByType ? offersByType.offers : [];
 
-    const offers = offersByType.map((offer) => ({
+    const offers = availableOffers.map((offer) => ({
       ...offer,
       isChecked: point.offerIds.includes(offer.id)
     }));
 
     return {
-      ...point,
+      id: point.id,
+      type: point.type,
       destination,
+      dateFrom: point.dateFrom,
+      dateTo: point.dateTo,
+      basePrice: point.basePrice,
+      isFavorite: point.isFavorite,
       offers
     };
   }
@@ -45,7 +51,11 @@ export default class TripPresenter {
     const firstPoint = this.#createPointForView(this.#pointModel.points[0]);
 
     render(
-      new EditPointView({point: firstPoint}),
+      new EditPointView({
+        point: firstPoint,
+        destinations: this.#pointModel.destinations,
+        offersByType: this.#pointModel.offers
+      }),
       this.#tripEventsListContainer,
       RenderPosition.AFTERBEGIN
     );

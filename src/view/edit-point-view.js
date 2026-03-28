@@ -84,7 +84,7 @@ function createPicturesTemplate(pictures) {
 
   return `<div class="event__photos-container">
     <div class="event__photos-tape">
-      ${pictures.map((picture) => `<img class="event__photo" src="${picture}" alt="Event photo">`).join('')}
+      ${pictures.map((picture) => `<img class="event__photo" src="${picture.src}" alt="${picture.description}">`).join('')}
     </div>
   </div>`;
 }
@@ -101,7 +101,11 @@ function createDestinationTemplate(destination) {
   </section>`;
 }
 
-function createEditPointTemplate(point) {
+function createDestinationListTemplate(destinations) {
+  return destinations.map((item) => `<option value="${item.name}"></option>`).join('');
+}
+
+function createEditPointTemplate(point, destinations) {
   const {
     type,
     destination,
@@ -114,6 +118,8 @@ function createEditPointTemplate(point) {
   const typeListTemplate = EVENT_TYPES
     .map((eventType) => createTypeItemTemplate(type, eventType))
     .join('');
+
+  const destinationListTemplate = createDestinationListTemplate(destinations);
 
   return `<form class="event event--edit" action="#" method="post">
     <header class="event__header">
@@ -155,9 +161,7 @@ function createEditPointTemplate(point) {
           list="destination-list-1"
         >
         <datalist id="destination-list-1">
-          <option value="Amsterdam"></option>
-          <option value="Geneva"></option>
-          <option value="Chamonix"></option>
+          ${destinationListTemplate}
         </datalist>
       </div>
 
@@ -211,8 +215,10 @@ function createEditPointTemplate(point) {
 
 export default class EditPointView extends AbstractView {
   #point = null;
+  #destinations = null;
+  #offersByType = null;
 
-  constructor({ point } = {}) {
+  constructor({point, destinations, offersByType} = {}) {
     super();
     this.#point = point || {
       type: 'flight',
@@ -223,12 +229,48 @@ export default class EditPointView extends AbstractView {
       },
       dateFrom: '',
       dateTo: '',
-      basePrice: '',
+      basePrice: 0,
       offers: []
     };
+    this.#destinations = destinations || [];
+    this.#offersByType = offersByType || [];
+
+    this.getElement().addEventListener('change', this.#formChangeHandler);
   }
 
   get template() {
-    return createEditPointTemplate(this.#point);
+    return createEditPointTemplate(this.#point, this.#destinations);
   }
+
+  #getOffersForType(type) {
+    const offersGroup = this.#offersByType.find((item) => item.type === type);
+    const availableOffers = offersGroup ? offersGroup.offers : [];
+
+    return availableOffers.map((offer) => ({
+      ...offer,
+      isChecked: false
+    }));
+  }
+
+  #replaceElement() {
+    const prevElement = this.getElement();
+    this.removeElement();
+    const newElement = this.getElement();
+    prevElement.replaceWith(newElement);
+    newElement.addEventListener('change', this.#formChangeHandler);
+  }
+
+  #formChangeHandler = (evt) => {
+    if (evt.target.name === 'event-type') {
+      const newType = evt.target.value;
+
+      this.#point = {
+        ...this.#point,
+        type: newType,
+        offers: this.#getOffersForType(newType)
+      };
+
+      this.#replaceElement();
+    }
+  };
 }

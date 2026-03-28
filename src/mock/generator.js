@@ -1,30 +1,42 @@
 const getRandomId = () => crypto.randomUUID();
 
+const generatePicture = () => ({
+  src: `https://loremflickr.com/248/152?random=${Math.random()}`,
+  description: 'Destination photo'
+});
+
 const generateDestination = (name = 'Amsterdam') => ({
   id: getRandomId(),
   name,
   description: 'Lorem ipsum dolor sit amet.',
-  pictures: [
-    `https://loremflickr.com/248/152?random=${Math.random()}`
-  ]
+  pictures: [generatePicture()]
 });
 
-const generateOffer = (type, title = 'Extra option') => ({
+const generateOffer = (title = 'Extra option') => ({
   id: getRandomId(),
-  type,
   title,
-  price: Math.floor(Math.random() * 100)
+  price: Math.floor(Math.random() * 100) + 1
 });
 
-const generatePoint = (type, destinationId, offers) => ({
-  id: getRandomId(),
+const generateOffersByType = (type, offers) => ({
   type,
-  destinationId,
-  dateFrom: '2025-03-18T10:30',
-  dateTo: '2025-03-18T11:00',
-  basePrice: Math.floor(Math.random() * 200) + 1,
-  isFavorite: false,
-  offerIds: offers.map((offer) => offer.id)
+  offers
 });
 
-export {generateDestination, generateOffer, generatePoint};
+const generatePoint = (type, destinationId, offerIds) => ({
+  id: getRandomId(),
+  basePrice: Math.floor(Math.random() * 200) + 1,
+  dateFrom: '2025-03-18T10:30:00.000Z',
+  dateTo: '2025-03-18T11:00:00.000Z',
+  destinationId,
+  isFavorite: false,
+  offerIds,
+  type
+});
+
+export {
+  generateDestination,
+  generateOffer,
+  generateOffersByType,
+  generatePoint
+};

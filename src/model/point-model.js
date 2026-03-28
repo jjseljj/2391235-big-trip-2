@@ -1,12 +1,10 @@
-import {points, destinations, offers} from '../mock/point.js';
-
-/**
- * Point Model
- * Хранит временные данные точек маршрута
- */
+import {points} from '../mocks/points.js';
+import {destinations} from '../mocks/destinations.js';
+import {offers} from '../mocks/offers.js';
+import {adaptPointToClient} from '../adapter/point-adapter.js';
 
 export default class PointModel {
-  #points = points;
+  #points = points.map(adaptPointToClient);
   #destinations = destinations;
   #offers = offers;
 

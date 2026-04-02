@@ -1,16 +1,5 @@
 import TripPresenter from './presenter/trip-presenter.js';
-
-/**
- * Main
- * Точка входа в приложение
- *
- * Отвечает за:
- * - получение контейнеров из DOM
- * - создание списка событий (ul)
- * - инициализацию TripPresenter
- *
- * Запускает отрисовку всех компонентов страницы
- */
+import PointModel from './model/point-model.js';
 
 const tripControlsFiltersContainer = document.querySelector('.trip-controls__filters');
 const tripEventsContainer = document.querySelector('.trip-events');
@@ -20,10 +9,13 @@ tripEventsListContainer.classList.add('trip-events__list');
 
 tripEventsContainer.append(tripEventsListContainer);
 
+const pointModel = new PointModel();
+
 const tripPresenter = new TripPresenter({
   tripControlsFiltersContainer,
   tripEventsContainer,
-  tripEventsListContainer
+  tripEventsListContainer,
+  pointModel
 });
 
 tripPresenter.init();

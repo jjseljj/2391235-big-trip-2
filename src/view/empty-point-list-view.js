@@ -1,11 +1,18 @@
 import AbstractView from '../framework/view/abstract-view.js';
 
-function createEmptyPointListTemplate() {
-  return '<p class="trip-events__msg">Click New Event to create your first point</p>';
+function createEmptyPointListTemplate(message) {
+  return `<p class="trip-events__msg">${message}</p>`;
 }
 
 export default class EmptyPointListView extends AbstractView {
+  #message = '';
+
+  constructor({message}) {
+    super();
+    this.#message = message;
+  }
+
   get template() {
-    return createEmptyPointListTemplate();
+    return createEmptyPointListTemplate(this.#message);
   }
 }

@@ -19,8 +19,4 @@ export default class PointModel {
   get offers() {
     return this.#offers;
   }
-
-  set points(newPoints) {
-    this.#points = newPoints;
-  }
 }

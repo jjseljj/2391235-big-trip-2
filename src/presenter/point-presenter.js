@@ -18,6 +18,7 @@ export default class PointPresenter {
   #mode = Mode.DEFAULT;
   #onModeChange = null;
   #onDataChange = null;
+  #editedPoint = null;
 
   constructor({container, destinations, offersByType, onModeChange, onDataChange}) {
     this.#container = container;
@@ -40,13 +41,11 @@ export default class PointPresenter {
     });
 
     this.#editPointComponent = new EditPointView({
-      point: this.#point,
+      point: this.#editedPoint ?? this.#point,
       destinations: this.#destinations,
-      onFormSubmit: this.#replaceFormToPoint,
+      onFormSubmit: this.#handleFormSubmit,
       onRollupClick: this.#replaceFormToPoint
     });
-
-    this.#editPointComponent.setTypeChangeHandler(this.#handleTypeChange);
 
     if (prevPointComponent === null || prevEditPointComponent === null) {
       render(this.#pointComponent, this.#container);
@@ -62,46 +61,48 @@ export default class PointPresenter {
     }
   }
 
+  #handleFormSubmit = () => {
+    this.#onDataChange(this.#editedPoint);
+    this.#replaceFormToPoint();
+  };
+
   resetView() {
     if (this.#mode !== Mode.DEFAULT) {
       this.#replaceFormToPoint();
     }
   }
 
-  #getOffersForType(type, checkedOfferIds = []) {
-    const offersGroup = this.#offersByType.find((item) => item.type === type);
-    const availableOffers = offersGroup ? offersGroup.offers : [];
-
-    return availableOffers.map((offer) => ({
-      ...offer,
-      isChecked: checkedOfferIds.includes(offer.id)
-    }));
-  }
-
-  #createPointWithType(type) {
-    return {
-      ...this.#point,
-      type,
-      offers: this.#getOffersForType(type)
-    };
-  }
-
   #replacePointToForm = () => {
     this.#onModeChange();
+    this.#editedPoint = {
+      ...this.#point,
+      destination: {...this.#point.destination},
+      offers: this.#point.offers.map((offer) => ({...offer}))
+    };
+
+    const prevEditPointComponent = this.#editPointComponent;
+
+    this.#editPointComponent = new EditPointView({
+      point: this.#editedPoint,
+      destinations: this.#destinations,
+      onFormSubmit: this.#handleFormSubmit,
+      onRollupClick: this.#replaceFormToPoint
+    });
+
     replace(this.#editPointComponent, this.#pointComponent);
     document.addEventListener('keydown', this.#escKeyDownHandler);
     this.#mode = Mode.EDITING;
+
+    if (prevEditPointComponent !== null) {
+      prevEditPointComponent.removeElement();
+    }
   };
 
   #replaceFormToPoint = () => {
+    this.#editedPoint = null;
     replace(this.#pointComponent, this.#editPointComponent);
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     this.#mode = Mode.DEFAULT;
-  };
-
-  #handleTypeChange = (newType) => {
-    this.#point = this.#createPointWithType(newType);
-    this.init(this.#point);
   };
 
   #escKeyDownHandler = (evt) => {
@@ -114,6 +115,8 @@ export default class PointPresenter {
   #handleFavoriteClick = () => {
     this.#onDataChange({
       ...this.#point,
+      //destination: {...this.#point.destination},
+      //offers: this.#point.offers.map((offer) => ({...offer})),
       isFavorite: !this.#point.isFavorite
     });
   };

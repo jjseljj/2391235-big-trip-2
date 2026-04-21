@@ -12,6 +12,19 @@ const EVENT_TYPES = [
   'restaurant'
 ];
 
+const EMPTY_POINT = {
+  type: 'flight',
+  destination: {
+    name: '',
+    description: '',
+    pictures: []
+  },
+  dateFrom: '',
+  dateTo: '',
+  basePrice: 0,
+  offers: []
+};
+
 function formatDate(date) {
   if (!date) {
     return '';
@@ -243,17 +256,14 @@ export default class EditPointView extends AbstractView {
   constructor({point, destinations, onFormSubmit, onRollupClick} = {}) {
     super();
     this.#formId = crypto.randomUUID();
-    this.#point = point || {
-      type: 'flight',
-      destination: {
-        name: '',
-        description: '',
-        pictures: []
-      },
-      dateFrom: '',
-      dateTo: '',
-      basePrice: 0,
-      offers: []
+    this.#point = point ? {
+      ...point,
+      destination: {...point.destination},
+      offers: point.offers.map((offer) => ({...offer}))
+    } : {
+      ...EMPTY_POINT,
+      destination: {...EMPTY_POINT.destination},
+      offers: [...EMPTY_POINT.offers]
     };
     this.#destinations = destinations || [];
     this.#onFormSubmit = onFormSubmit;
@@ -265,16 +275,6 @@ export default class EditPointView extends AbstractView {
 
   get template() {
     return createEditPointTemplate(this.#point, this.#destinations, this.#formId);
-  }
-
-  setTypeChangeHandler(callback) {
-    const typeGroupElement = this.element.querySelector('.event__type-group');
-
-    if (typeGroupElement) {
-      typeGroupElement.addEventListener('change', (evt) => {
-        callback(evt.target.value);
-      });
-    }
   }
 
   #formSubmitHandler = (evt) => {

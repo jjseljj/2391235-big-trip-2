@@ -43,6 +43,7 @@ export default class PointPresenter {
     this.#editPointComponent = new EditPointView({
       point: this.#editedPoint ?? this.#point,
       destinations: this.#destinations,
+      offersByType: this.#offersByType,
       onFormSubmit: this.#handleFormSubmit,
       onRollupClick: this.#replaceFormToPoint
     });
@@ -61,8 +62,8 @@ export default class PointPresenter {
     }
   }
 
-  #handleFormSubmit = () => {
-    this.#onDataChange(this.#editedPoint);
+  #handleFormSubmit = (updatedPoint) => {
+    this.#onDataChange(updatedPoint);
     this.#replaceFormToPoint();
   };
 
@@ -85,6 +86,7 @@ export default class PointPresenter {
     this.#editPointComponent = new EditPointView({
       point: this.#editedPoint,
       destinations: this.#destinations,
+      offersByType: this.#offersByType,
       onFormSubmit: this.#handleFormSubmit,
       onRollupClick: this.#replaceFormToPoint
     });

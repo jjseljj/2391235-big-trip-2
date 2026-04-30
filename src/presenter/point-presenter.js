@@ -1,4 +1,4 @@
-import {render, replace} from '../framework/render.js';
+import {render, replace, remove} from '../framework/render.js';
 import PointView from '../view/point-view.js';
 import EditPointView from '../view/edit-point-view.js';
 
@@ -96,7 +96,7 @@ export default class PointPresenter {
     this.#mode = Mode.EDITING;
 
     if (prevEditPointComponent !== null) {
-      prevEditPointComponent.removeElement();
+      remove(prevEditPointComponent);
     }
   };
 
@@ -122,7 +122,7 @@ export default class PointPresenter {
   };
 
   destroy() {
-    this.#pointComponent.removeElement();
-    this.#editPointComponent.removeElement();
+    remove(this.#pointComponent);
+    remove(this.#editPointComponent);
   }
 }

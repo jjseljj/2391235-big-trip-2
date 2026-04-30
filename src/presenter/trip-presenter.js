@@ -208,7 +208,5 @@ export default class TripPresenter {
   #clearPointList() {
     this.#pointPresenters.forEach((presenter) => presenter.destroy());
     this.#pointPresenters.clear();
-
-    this.#tripEventsListContainer.innerHTML = '';
   }
 }

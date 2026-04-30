@@ -1,16 +1,6 @@
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
-
-const EVENT_TYPES = [
-  'taxi',
-  'bus',
-  'train',
-  'ship',
-  'drive',
-  'flight',
-  'check-in',
-  'sightseeing',
-  'restaurant'
-];
 
 const EMPTY_POINT = {
   type: 'flight',
@@ -67,6 +57,7 @@ function createOfferItemTemplate(offer, formId) {
       id="event-offer-${offer.id}-${formId}"
       type="checkbox"
       name="event-offer-${offer.id}"
+      value="${offer.id}"
       ${checkedAttribute}
     >
     <label class="event__offer-label" for="event-offer-${offer.id}-${formId}">
@@ -118,7 +109,7 @@ function createDestinationListTemplate(destinations) {
   return destinations.map((item) => `<option value="${item.name}"></option>`).join('');
 }
 
-function createEditPointTemplate(point, destinations, formId) {
+function createEditPointTemplate(point, destinations, offersByType, formId) {
   const {
     type,
     destination,
@@ -128,8 +119,8 @@ function createEditPointTemplate(point, destinations, formId) {
     offers
   } = point;
 
-  const typeListTemplate = EVENT_TYPES
-    .map((eventType) => createTypeItemTemplate(type, eventType, formId))
+  const typeListTemplate = offersByType
+    .map((item) => createTypeItemTemplate(type, item.type, formId))
     .join('');
 
   const destinationListTemplate = createDestinationListTemplate(destinations);
@@ -252,6 +243,8 @@ export default class EditPointView extends AbstractStatefulView {
   #onFormSubmit = null;
   #onRollupClick = null;
   #offersByType = null;
+  #datepickerFrom = null;
+  #datepickerTo = null;
 
   constructor({point, destinations, offersByType, onFormSubmit, onRollupClick} = {}) {
     super();
@@ -275,10 +268,11 @@ export default class EditPointView extends AbstractStatefulView {
     this.element.querySelector('.event__type-group').addEventListener('change', this.#typeChangeHandler);
     this.element.querySelector('.event__input--destination').addEventListener('change', this.#destinationChangeHandler);
     this.element.querySelector('.event__available-offers')?.addEventListener('change', this.#offersChangeHandler);
+    this.#setDatepicker();
   }
 
   get template() {
-    return createEditPointTemplate(this._state, this.#destinations, this.#formId);
+    return createEditPointTemplate(this._state, this.#destinations, this.#offersByType, this.#formId);
   }
 
   #formSubmitHandler = (evt) => {
@@ -298,10 +292,10 @@ export default class EditPointView extends AbstractStatefulView {
   #typeChangeHandler = (evt) => {
     const selectedType = evt.target.value;
     const offersByType = this.#offersByType.find((item) => item.type === selectedType);
-    const offers = offersByType ? offersByType.offers.map((offer) => ({
+    const offers = offersByType?.offers.map((offer) => ({
       ...offer,
       isChecked: false
-    })) : [];
+    })) || [];
 
     this.updateElement({
       type: selectedType,
@@ -330,10 +324,15 @@ export default class EditPointView extends AbstractStatefulView {
     this.element.querySelector('.event__type-group').addEventListener('change', this.#typeChangeHandler);
     this.element.querySelector('.event__input--destination').addEventListener('change', this.#destinationChangeHandler);
     this.element.querySelector('.event__available-offers')?.addEventListener('change', this.#offersChangeHandler);
+    this.#setDatepicker();
   }
 
   #offersChangeHandler = (evt) => {
-    const offerId = Number(evt.target.name.replace('event-offer-', ''));
+    const offerId = Number(evt.target.value);
+
+    /*const newOffers = evt.target.checked
+      ? this._state.offers.push(...)
+      : this._state.offers.filter(...);*/
 
     this._setState({
       offers: this._state.offers.map((offer) => offer.id === offerId
@@ -344,4 +343,56 @@ export default class EditPointView extends AbstractStatefulView {
         : offer)
     });
   };
+
+  #setDatepicker() {
+    this.#datepickerFrom = flatpickr(
+      this.element.querySelector(`#event-start-time-${this.#formId}`),
+      {
+        dateFormat: 'd/m/y H:i',
+        enableTime: true,
+        // eslint-disable-next-line camelcase
+        time_24hr: true,
+        defaultDate: this._state.dateFrom,
+        onChange: this.#dateFromChangeHandler
+      }
+    );
+
+    this.#datepickerTo = flatpickr(
+      this.element.querySelector(`#event-end-time-${this.#formId}`),
+      {
+        dateFormat: 'd/m/y H:i',
+        enableTime: true,
+        // eslint-disable-next-line camelcase
+        time_24hr: true,
+        defaultDate: this._state.dateTo,
+        onChange: this.#dateToChangeHandler
+      }
+    );
+  }
+
+  #dateFromChangeHandler = ([userDate]) => {
+    this._setState({
+      dateFrom: userDate
+    });
+  };
+
+  #dateToChangeHandler = ([userDate]) => {
+    this._setState({
+      dateTo: userDate
+    });
+  };
+
+  removeElement() {
+    if (this.#datepickerFrom) {
+      this.#datepickerFrom.destroy();
+      this.#datepickerFrom = null;
+    }
+
+    if (this.#datepickerTo) {
+      this.#datepickerTo.destroy();
+      this.#datepickerTo = null;
+    }
+
+    super.removeElement();
+  }
 }

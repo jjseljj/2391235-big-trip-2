@@ -1,42 +1,22 @@
+import dayjs from 'dayjs';
 import AbstractView from '../framework/view/abstract-view.js';
 
 function formatTime(date) {
-  if (!date) {
-    return '';
-  }
-
-  const currentDate = new Date(date);
-
-  const hours = String(currentDate.getHours()).padStart(2, '0');
-  const minutes = String(currentDate.getMinutes()).padStart(2, '0');
-
-  return `${hours}:${minutes}`;
+  return date ? dayjs(date).format('HH:mm') : '';
 }
 
 function formatPointDate(date) {
-  if (!date) {
-    return '';
-  }
-
-  const currentDate = new Date(date);
-  const day = String(currentDate.getDate()).padStart(2, '0');
-  const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  const month = monthNames[currentDate.getMonth()];
-
-  return `${month} ${day}`;
+  return date ? dayjs(date).format('MMM DD').toUpperCase() : '';
 }
 
 function formatDuration(dateFrom, dateTo) {
-  const startDate = new Date(dateFrom);
-  const endDate = new Date(dateTo);
-  const difference = endDate - startDate;
+  const difference = dayjs(dateTo).diff(dayjs(dateFrom), 'minute');
 
-  const minutes = Math.floor(difference / (1000 * 60));
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
+  const hours = Math.floor(difference / 60);
+  const minutes = difference % 60;
 
   if (hours > 0) {
-    return `${hours}H ${restMinutes}M`;
+    return `${hours}H ${minutes}M`;
   }
 
   return `${minutes}M`;

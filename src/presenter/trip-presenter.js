@@ -1,9 +1,8 @@
-import {render, RenderPosition} from '../framework/render.js';
-import FiltersView from '../view/filters-view.js';
+import {render, RenderPosition, remove} from '../framework/render.js';
 import SortView from '../view/sort-view.js';
 import EmptyPointListView from '../view/empty-point-list-view.js';
 import PointPresenter from './point-presenter.js';
-import {FilterType, SortType} from '../const.js';
+import {FilterType, SortType, UserAction} from '../const.js';
 
 const filterConfig = {
   [FilterType.EVERYTHING]: {
@@ -22,6 +21,13 @@ const filterConfig = {
     name: 'Past',
     check: isPastPoint
   }
+};
+
+const emptyListMessages = {
+  [FilterType.EVERYTHING]: 'Click New Event to create your first point',
+  [FilterType.FUTURE]: 'There are no future events now',
+  [FilterType.PRESENT]: 'There are no present events now',
+  [FilterType.PAST]: 'There are no past events now'
 };
 
 function isFuturePoint(point) {
@@ -54,25 +60,23 @@ function sortPointByTime(pointA, pointB) {
 }
 
 export default class TripPresenter {
-  #tripControlsFiltersContainer = null;
   #tripEventsContainer = null;
   #tripEventsListContainer = null;
   #pointModel = null;
-  #points = [];
+  #filterModel = null;
   #pointPresenters = new Map();
-  #emptyPointListComponent = new EmptyPointListView({
-    message: 'Click New Event to create your first point'
-  });
-
   #currentSortType = SortType.DAY;
-
   #sortComponent = null;
+  #emptyComponent = null;
+  #onNewPointDestroy = null;
 
-  constructor({tripControlsFiltersContainer, tripEventsContainer, tripEventsListContainer, pointModel}) {
-    this.#tripControlsFiltersContainer = tripControlsFiltersContainer;
+  constructor({tripEventsContainer, tripEventsListContainer, pointModel, filterModel, onNewPointDestroy}) {
     this.#tripEventsContainer = tripEventsContainer;
     this.#tripEventsListContainer = tripEventsListContainer;
     this.#pointModel = pointModel;
+    this.#filterModel = filterModel;
+    this.#filterModel.addObserver(this.#handleFilterChange);
+    this.#onNewPointDestroy = onNewPointDestroy;
   }
 
   #createPointForView(point) {
@@ -103,25 +107,15 @@ export default class TripPresenter {
     };
   }
 
-  #createFilters(points) {
-    return Object.entries(filterConfig).map(([type, {name, check}]) => ({
-      type,
-      name,
-      isDisabled: type !== FilterType.EVERYTHING
-        ? !points.some(check)
-        : false,
-      isChecked: type === FilterType.EVERYTHING
-    }));
-  }
-
   init() {
-    this.#points = [...this.#pointModel.points];
-
-    const filters = this.#createFilters(this.#points);
-    render(new FiltersView({filters}), this.#tripControlsFiltersContainer);
-
     if (this.#points.length === 0) {
-      render(this.#emptyPointListComponent, this.#tripEventsListContainer);
+      const filterType = this.#filterModel.filter;
+
+      this.#emptyComponent = new EmptyPointListView({
+        message: emptyListMessages[filterType]
+      });
+
+      render(this.#emptyComponent, this.#tripEventsListContainer);
       return;
     }
 
@@ -184,15 +178,34 @@ export default class TripPresenter {
     };
   }
 
-  #handlePointChange = (updatedPoint) => {
-    const nextPoint = this.#createPointFromView(updatedPoint);
+  #handlePointChange = (userAction, updatedPoint) => {
+    switch (userAction) {
+      case UserAction.ADD_POINT: {
+        this.#onNewPointDestroy?.();
+        const nextPoint = this.#createPointFromView({
+          ...updatedPoint,
+          id: crypto.randomUUID()
+        });
 
-    this.#points = this.#points.map((point) =>
-      point.id === nextPoint.id ? nextPoint : point
-    );
+        this.#pointModel.addPoint(nextPoint);
+        this.#handleFilterChange();
+        break;
+      }
+      case UserAction.UPDATE_POINT: {
+        const nextPoint = this.#createPointFromView(updatedPoint);
 
-    const pointForView = this.#createPointForView(nextPoint);
-    this.#pointPresenters.get(nextPoint.id).init(pointForView);
+        this.#pointModel.updatePoint(nextPoint);
+
+        const pointForView = this.#createPointForView(nextPoint);
+        this.#pointPresenters.get(nextPoint.id).init(pointForView);
+        break;
+      }
+
+      case UserAction.DELETE_POINT:
+        this.#pointModel.deletePoint(updatedPoint.id);
+        this.#handleFilterChange();
+        break;
+    }
   };
 
   #handleSortTypeChange = (sortType) => {
@@ -201,12 +214,104 @@ export default class TripPresenter {
     }
 
     this.#currentSortType = sortType;
-    this.#clearPointList();
+    this.#clearPoints();
     this.#renderPoints();
   };
+
+  #clearPoints() {
+    this.#pointPresenters.forEach((presenter) => presenter.destroy());
+    this.#pointPresenters.clear();
+  }
 
   #clearPointList() {
     this.#pointPresenters.forEach((presenter) => presenter.destroy());
     this.#pointPresenters.clear();
+
+    if (this.#sortComponent) {
+      remove(this.#sortComponent);
+      this.#sortComponent = null;
+    }
+  }
+
+  get #points() {
+    const filterType = this.#filterModel.filter;
+    const points = this.#pointModel.points;
+
+    return points.filter(filterConfig[filterType].check);
+  }
+
+  #handleFilterChange = () => {
+    this.#currentSortType = SortType.DAY;
+    this.#clearPointList();
+    this.#clearEmptyList();
+
+    /*if (this.#sortComponent) {
+      this.#sortComponent.removeElement();
+      this.#sortComponent = null;
+    }*/
+
+    if (this.#points.length === 0) {
+      const filterType = this.#filterModel.filter;
+
+      this.#emptyComponent = new EmptyPointListView({
+        message: emptyListMessages[filterType]
+      });
+
+      render(this.#emptyComponent, this.#tripEventsListContainer);
+      return;
+    }
+
+    this.#sortComponent = new SortView({
+      currentSortType: this.#currentSortType,
+      onSortTypeChange: this.#handleSortTypeChange
+    });
+
+    render(this.#sortComponent, this.#tripEventsContainer, RenderPosition.AFTERBEGIN);
+
+    this.#renderPoints();
+  };
+
+  #clearEmptyList() {
+    if (this.#emptyComponent) {
+      this.#emptyComponent.removeElement();
+      this.#emptyComponent = null;
+    }
+  }
+
+  createPoint() {
+    this.#handleModeChange();
+
+    this.#filterModel.setFilter(FilterType.EVERYTHING);
+
+    this.#currentSortType = SortType.DAY;
+    this.#clearPointList();
+    this.#clearEmptyList();
+
+    const newPointPresenter = new PointPresenter({
+      container: this.#tripEventsListContainer,
+      destinations: this.#pointModel.destinations,
+      offersByType: this.#pointModel.offers,
+      onModeChange: this.#handleModeChange,
+      onDataChange: this.#handlePointChange,
+      onDestroy: this.#onNewPointDestroy
+    });
+
+    newPointPresenter.init({
+      id: null,
+      type: 'flight',
+      destination: {
+        id: null,
+        name: '',
+        description: '',
+        pictures: []
+      },
+      dateFrom: new Date(),
+      dateTo: new Date(),
+      basePrice: 0,
+      isFavorite: false,
+      offers: []
+    });
+
+    /*this.#onNewPointDestroy?.();*/
   }
 }

@@ -19,4 +19,24 @@ export default class PointModel {
   get offers() {
     return this.#offers;
   }
+
+  setPoints(newPoints) {
+    this.#points = newPoints.map(adaptPointToClient);
+  }
+
+  updatePoint(updatedPoint) {
+    this.#points = this.#points.map((point) =>
+      point.id === updatedPoint.id ? updatedPoint : point
+    );
+  }
+
+  addPoint(newPoint) {
+    this.#points = [newPoint, ...this.#points];
+  }
+
+  deletePoint(pointId) {
+    this.#points = this.#points.filter(
+      (point) => point.id !== pointId
+    );
+  }
 }

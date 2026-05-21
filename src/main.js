@@ -2,17 +2,10 @@ import TripPresenter from './presenter/trip-presenter.js';
 import PointModel from './model/point-model.js';
 import FilterModel from './model/filter-model.js';
 import FilterPresenter from './presenter/filter-presenter.js';
-
-const tripControlsFiltersContainer = document.querySelector('.trip-controls__filters');
-const tripEventsContainer = document.querySelector('.trip-events');
-
-const tripEventsListContainer = document.createElement('ul');
-tripEventsListContainer.classList.add('trip-events__list');
-
-tripEventsContainer.append(tripEventsListContainer);
+import NewEventButtonPresenter from './presenter/new-event-button-presenter.js';
+import {tripControlsFiltersContainer, tripEventsContainer} from './const/dom-elements.js';
 
 const pointModel = new PointModel();
-
 const filterModel = new FilterModel();
 
 const filterPresenter = new FilterPresenter({
@@ -21,22 +14,22 @@ const filterPresenter = new FilterPresenter({
   filterModel
 });
 
-const newEventButton = document.querySelector('.trip-main__event-add-btn');
+let newEventButtonPresenter = null;
 
 const tripPresenter = new TripPresenter({
   tripEventsContainer,
-  tripEventsListContainer,
   pointModel,
   filterModel,
   onNewPointDestroy: () => {
-    newEventButton.disabled = false;
+    newEventButtonPresenter.toggleDisabledState(false);
   }
 });
 
-newEventButton.addEventListener('click', () => {
-  tripPresenter.createPoint();
-  newEventButton.disabled = true;
+newEventButtonPresenter = new NewEventButtonPresenter({
+  container: tripControlsFiltersContainer,
+  onClick: () => tripPresenter.createPoint()
 });
 
+newEventButtonPresenter.init();
 filterPresenter.init();
 tripPresenter.init();

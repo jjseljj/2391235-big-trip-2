@@ -1,26 +1,5 @@
-import dayjs from 'dayjs';
+import {formatTime, formatPointDate, formatDuration} from '../utils/date.js';
 import AbstractView from '../framework/view/abstract-view.js';
-
-function formatTime(date) {
-  return date ? dayjs(date).format('HH:mm') : '';
-}
-
-function formatPointDate(date) {
-  return date ? dayjs(date).format('MMM DD').toUpperCase() : '';
-}
-
-function formatDuration(dateFrom, dateTo) {
-  const difference = dayjs(dateTo).diff(dayjs(dateFrom), 'minute');
-
-  const hours = Math.floor(difference / 60);
-  const minutes = difference % 60;
-
-  if (hours > 0) {
-    return `${hours}H ${minutes}M`;
-  }
-
-  return `${minutes}M`;
-}
 
 function createOffersTemplate(offers) {
   return offers

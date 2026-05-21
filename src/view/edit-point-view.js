@@ -1,6 +1,7 @@
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
+import {formatDate} from '../utils/date.js';
 
 const EMPTY_POINT = {
   type: 'flight',
@@ -15,23 +16,6 @@ const EMPTY_POINT = {
   offers: []
 };
 
-function formatDate(date) {
-  if (!date) {
-    return '';
-  }
-
-  const currentDate = new Date(date);
-
-  const day = String(currentDate.getDate()).padStart(2, '0');
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  const year = String(currentDate.getFullYear()).slice(-2);
-
-  const hours = String(currentDate.getHours()).padStart(2, '0');
-  const minutes = String(currentDate.getMinutes()).padStart(2, '0');
-
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
-}
-
 function createTypeItemTemplate(currentType, type, formId) {
   const checkedAttribute = currentType === type ? 'checked' : '';
 
@@ -44,7 +28,9 @@ function createTypeItemTemplate(currentType, type, formId) {
       value="${type}"
       ${checkedAttribute}
     >
-    <label class="event__type-label event__type-label--${type}" for="event-type-${type}-${formId}">${type}</label>
+    <label class="event__type-label event__type-label--${type}" for="event-type-${type}-${formId}">
+      ${type.charAt(0).toUpperCase() + type.slice(1)}
+    </label>
   </div>`;
 }
 
@@ -162,7 +148,7 @@ function createEditPointTemplate(point, destinations, offersByType, formId) {
           class="event__label event__type-output"
           for="event-destination-${formId}"
         >
-          ${type}
+          ${type.charAt(0).toUpperCase() + type.slice(1)}
         </label>
         <input
           class="event__input event__input--destination"
@@ -355,11 +341,7 @@ export default class EditPointView extends AbstractStatefulView {
   }
 
   #offersChangeHandler = (evt) => {
-    const offerId = Number(evt.target.value);
-
-    /*const newOffers = evt.target.checked
-      ? this._state.offers.push(...)
-      : this._state.offers.filter(...);*/
+    const offerId = evt.target.value;
 
     this._setState({
       offers: this._state.offers.map((offer) => offer.id === offerId

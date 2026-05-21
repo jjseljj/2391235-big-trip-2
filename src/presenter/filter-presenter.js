@@ -1,6 +1,7 @@
 import {render, remove} from '../framework/render.js';
 import FiltersView from '../view/filters-view.js';
 import {FilterType} from '../const.js';
+import {isFuturePoint, isPresentPoint, isPastPoint} from '../utils/filter.js';
 
 export default class FilterPresenter {
   #container = null;
@@ -41,22 +42,19 @@ export default class FilterPresenter {
         type: FilterType.FUTURE,
         name: 'Future',
         isChecked: this.#filterModel.filter === FilterType.FUTURE,
-        isDisabled: !points.some((point) => new Date(point.dateFrom) > new Date())
+        isDisabled: !points.some(isFuturePoint)
       },
       {
         type: FilterType.PRESENT,
         name: 'Present',
         isChecked: this.#filterModel.filter === FilterType.PRESENT,
-        isDisabled: !points.some((point) => {
-          const now = new Date();
-          return new Date(point.dateFrom) <= now && new Date(point.dateTo) >= now;
-        })
+        isDisabled: !points.some(isPresentPoint)
       },
       {
         type: FilterType.PAST,
         name: 'Past',
         isChecked: this.#filterModel.filter === FilterType.PAST,
-        isDisabled: !points.some((point) => new Date(point.dateTo) < new Date())
+        isDisabled: !points.some(isPastPoint)
       }
     ];
   }

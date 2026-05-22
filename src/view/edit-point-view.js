@@ -13,7 +13,10 @@ const EMPTY_POINT = {
   dateFrom: '',
   dateTo: '',
   basePrice: 0,
-  offers: []
+  offers: [],
+  isDisabled: false,
+  isSaving: false,
+  isDeleting: false
 };
 
 function createTypeItemTemplate(currentType, type, formId) {
@@ -102,7 +105,10 @@ function createEditPointTemplate(point, destinations, offersByType, formId) {
     dateFrom,
     dateTo,
     basePrice,
-    offers
+    offers,
+    isDisabled,
+    isSaving,
+    isDeleting,
   } = point;
 
   const typeListTemplate = offersByType
@@ -208,8 +214,20 @@ function createEditPointTemplate(point, destinations, offersByType, formId) {
         >
       </div>
 
-      <button class="event__save-btn btn btn--blue" type="submit">Save</button>
-      <button class="event__reset-btn" type="reset">Delete</button>
+      <button
+        class="event__save-btn btn btn--blue"
+        type="submit"
+        ${isDisabled ? 'disabled' : ''}
+      >
+        ${isSaving ? 'Saving...' : 'Save'}
+      </button>
+      <button
+        class="event__reset-btn"
+        type="reset"
+        ${isDisabled ? 'disabled' : ''}
+      >
+        ${isDeleting ? 'Deleting...' : 'Delete'}
+      </button>
       <button class="event__rollup-btn" type="button">
         <span class="visually-hidden">Open event</span>
       </button>

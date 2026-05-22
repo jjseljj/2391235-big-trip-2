@@ -146,30 +146,43 @@ export default class TripPresenter {
     };
   }
 
-  #handlePointChange = (userAction, updatedPoint, updateType) => {
-    switch (userAction) {
-      case UserAction.ADD_POINT: {
-        this.#onNewPointDestroy?.();
-        const nextPoint = this.#createPointFromView({
-          ...updatedPoint,
-          id: crypto.randomUUID()
-        });
+  #handlePointChange = async (userAction, updatedPoint, updateType) => {
+    try {
+      switch (userAction) {
+        case UserAction.ADD_POINT: {
+          const nextPoint = this.#createPointFromView(updatedPoint);
 
-        this.#pointModel.addPoint(updateType, nextPoint);
-        break;
+          await this.#pointModel.addPoint(updateType, nextPoint);
+          this.#onNewPointDestroy?.();
+          break;
+        }
+        case UserAction.UPDATE_POINT: {
+          const nextPoint = this.#createPointFromView(updatedPoint);
+
+          await this.#pointModel.updatePoint(updateType, nextPoint);
+          break;
+        }
+
+        case UserAction.DELETE_POINT: {
+          const pointToDelete = this.#createPointFromView(updatedPoint);
+
+          await this.#pointModel.deletePoint(updateType, pointToDelete);
+          break;
+        }
       }
-      case UserAction.UPDATE_POINT: {
-        const nextPoint = this.#createPointFromView(updatedPoint);
-
-        this.#pointModel.updatePoint(updateType, nextPoint);
-        break;
+    }catch {
+      if (userAction === UserAction.ADD_POINT && this.#newPointPresenter) {
+        this.#newPointPresenter.setAborting();
+        return;
       }
 
-      case UserAction.DELETE_POINT: {
-        const pointToDelete = this.#createPointFromView(updatedPoint);
+      if (userAction === UserAction.UPDATE_POINT) {
+        this.#pointPresenters.get(updatedPoint.id)?.setAborting();
+        return;
+      }
 
-        this.#pointModel.deletePoint(updateType, pointToDelete);
-        break;
+      if (userAction === UserAction.DELETE_POINT) {
+        this.#pointPresenters.get(updatedPoint.id)?.setAborting();
       }
     }
   };
@@ -239,6 +252,7 @@ export default class TripPresenter {
   }
 
   createPoint() {
+    const defaultDestination = this.#pointModel.destinations[0];
     this.#handleModeChange();
 
     this.#filterModel.setFilter(FilterType.EVERYTHING);
@@ -256,10 +270,8 @@ export default class TripPresenter {
       id: null,
       type: 'flight',
       destination: {
-        id: null,
-        name: '',
-        description: '',
-        pictures: []
+        ...defaultDestination,
+        pictures: defaultDestination.pictures.map((picture) => ({...picture}))
       },
       dateFrom: new Date(),
       dateTo: new Date(),

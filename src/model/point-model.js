@@ -67,13 +67,16 @@ export default class PointModel extends Observable {
     this._notify(updateType, adaptedPoint);
   }
 
-  addPoint(updateType, newPoint) {
-    this.#points = [newPoint, ...this.#points];
+  async addPoint(updateType, newPoint) {
+    const response = await this.#apiService.addPoint(newPoint);
+    const adaptedPoint = PointAdapter.adaptToClient(response);
 
-    this._notify(updateType, newPoint);
+    this.#points = [adaptedPoint, ...this.#points];
+
+    this._notify(updateType, adaptedPoint);
   }
 
-  deletePoint(updateType, pointToDelete) {
+  async deletePoint(updateType, pointToDelete) {
     const index = this.#points.findIndex(
       (point) => point.id === pointToDelete.id
     );
@@ -81,6 +84,8 @@ export default class PointModel extends Observable {
     if (index === -1) {
       throw new Error('Can\'t delete unexisting point');
     }
+
+    await this.#apiService.deletePoint(pointToDelete);
 
     this.#points = [
       ...this.#points.slice(0, index),

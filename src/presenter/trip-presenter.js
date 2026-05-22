@@ -132,8 +132,7 @@ export default class TripPresenter {
   }
 
   #createPointFromView(updatedPoint) {
-    return {
-      id: updatedPoint.id,
+    const point = {
       type: updatedPoint.type,
       dateFrom: updatedPoint.dateFrom,
       dateTo: updatedPoint.dateTo,
@@ -144,6 +143,12 @@ export default class TripPresenter {
         .filter((offer) => offer.isChecked)
         .map((offer) => offer.id)
     };
+
+    if (updatedPoint.id) {
+      point.id = updatedPoint.id;
+    }
+
+    return point;
   }
 
   #handlePointChange = async (userAction, updatedPoint, updateType) => {

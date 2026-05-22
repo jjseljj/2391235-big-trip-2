@@ -4,8 +4,14 @@ import FilterModel from './model/filter-model.js';
 import FilterPresenter from './presenter/filter-presenter.js';
 import NewEventButtonPresenter from './presenter/new-event-button-presenter.js';
 import {tripControlsFiltersContainer, tripEventsContainer} from './const/dom-elements.js';
+import ApiService from './api/api-service.js';
 
-const pointModel = new PointModel();
+const apiService = new ApiService(
+  'https://22.objects.htmlacademy.pro/big-trip',
+  'Basic qwerty123456789'
+);
+
+const pointModel = new PointModel({apiService});
 const filterModel = new FilterModel();
 
 const filterPresenter = new FilterPresenter({
@@ -32,4 +38,7 @@ newEventButtonPresenter = new NewEventButtonPresenter({
 
 newEventButtonPresenter.init();
 filterPresenter.init();
-tripPresenter.init();
+tripPresenter.renderLoading();
+pointModel.init().finally(() => {
+  tripPresenter.init();
+});

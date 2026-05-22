@@ -6,6 +6,7 @@ import {FilterType, SortType, UserAction, UpdateType} from '../const.js';
 import TripEventsListView from '../view/trip-events-list-view.js';
 import {sortPointByDay, sortPointByTime, sortPointByPrice} from '../utils/point.js';
 import {filterConfig, emptyListMessages} from '../const/filter.js';
+import LoadingView from '../view/loading-view.js';
 
 export default class TripPresenter {
   #tripEventsContainer = null;
@@ -16,6 +17,7 @@ export default class TripPresenter {
   #currentSortType = SortType.DAY;
   #sortComponent = null;
   #emptyComponent = null;
+  #loadingComponent = new LoadingView();
   #onNewPointDestroy = null;
   #newPointPresenter = null;
   #tripEventsListComponent = new TripEventsListView();
@@ -27,6 +29,14 @@ export default class TripPresenter {
     this.#filterModel.addObserver(this.#handleModelEvent);
     this.#pointModel.addObserver(this.#handleModelEvent);
     this.#onNewPointDestroy = onNewPointDestroy;
+  }
+
+  renderLoading() {
+    render(this.#loadingComponent, this.#tripEventsContainer);
+  }
+
+  #clearLoading() {
+    remove(this.#loadingComponent);
   }
 
   #createPointForView(point) {
@@ -58,6 +68,7 @@ export default class TripPresenter {
   }
 
   init() {
+    this.#clearLoading();
     render(this.#tripEventsListComponent, this.#tripEventsContainer);
     this.#tripEventsListContainer = this.#tripEventsListComponent.element;
 

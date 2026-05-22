@@ -5,8 +5,8 @@ const points = [
   {
     id: crypto.randomUUID(),
     'base_price': 120,
-    'date_from': '2025-03-18T10:30:00.000Z',
-    'date_to': '2025-03-18T11:00:00.000Z',
+    'date_from': '2030-03-18T10:30:00.000Z',
+    'date_to': '2030-03-18T11:00:00.000Z',
     destination: destinations[0].id,
     'is_favorite': false,
     offers: [taxiOffer1.id],

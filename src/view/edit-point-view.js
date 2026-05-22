@@ -1,6 +1,7 @@
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
+import {formatDate} from '../utils/date.js';
 
 const EMPTY_POINT = {
   type: 'flight',
@@ -15,23 +16,6 @@ const EMPTY_POINT = {
   offers: []
 };
 
-function formatDate(date) {
-  if (!date) {
-    return '';
-  }
-
-  const currentDate = new Date(date);
-
-  const day = String(currentDate.getDate()).padStart(2, '0');
-  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  const year = String(currentDate.getFullYear()).slice(-2);
-
-  const hours = String(currentDate.getHours()).padStart(2, '0');
-  const minutes = String(currentDate.getMinutes()).padStart(2, '0');
-
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
-}
-
 function createTypeItemTemplate(currentType, type, formId) {
   const checkedAttribute = currentType === type ? 'checked' : '';
 
@@ -44,7 +28,9 @@ function createTypeItemTemplate(currentType, type, formId) {
       value="${type}"
       ${checkedAttribute}
     >
-    <label class="event__type-label event__type-label--${type}" for="event-type-${type}-${formId}">${type}</label>
+    <label class="event__type-label event__type-label--${type}" for="event-type-${type}-${formId}">
+      ${type.charAt(0).toUpperCase() + type.slice(1)}
+    </label>
   </div>`;
 }
 
@@ -162,7 +148,7 @@ function createEditPointTemplate(point, destinations, offersByType, formId) {
           class="event__label event__type-output"
           for="event-destination-${formId}"
         >
-          ${type}
+          ${type.charAt(0).toUpperCase() + type.slice(1)}
         </label>
         <input
           class="event__input event__input--destination"
@@ -215,7 +201,8 @@ function createEditPointTemplate(point, destinations, offersByType, formId) {
         <input
           class="event__input event__input--price"
           id="event-price-${formId}"
-          type="text"
+          type="number"
+          min="0"
           name="event-price"
           value="${basePrice}"
         >
@@ -245,8 +232,9 @@ export default class EditPointView extends AbstractStatefulView {
   #offersByType = null;
   #datepickerFrom = null;
   #datepickerTo = null;
+  #onDeleteClick = null;
 
-  constructor({point, destinations, offersByType, onFormSubmit, onRollupClick} = {}) {
+  constructor({point, destinations, offersByType, onFormSubmit, onRollupClick, onDeleteClick} = {}) {
     super();
     this.#formId = crypto.randomUUID();
     this._setState(point ? {
@@ -262,12 +250,15 @@ export default class EditPointView extends AbstractStatefulView {
     this.#offersByType = offersByType || [];
     this.#onFormSubmit = onFormSubmit;
     this.#onRollupClick = onRollupClick;
+    this.#onDeleteClick = onDeleteClick;
 
     this.element.addEventListener('submit', this.#formSubmitHandler);
     this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#rollupClickHandler);
     this.element.querySelector('.event__type-group').addEventListener('change', this.#typeChangeHandler);
     this.element.querySelector('.event__input--destination').addEventListener('change', this.#destinationChangeHandler);
     this.element.querySelector('.event__available-offers')?.addEventListener('change', this.#offersChangeHandler);
+    this.element.querySelector('.event__reset-btn').addEventListener('click', this.#deleteClickHandler);
+    this.element.querySelector('.event__input--price').addEventListener('input', this.#priceChangeHandler);
     this.#setDatepicker();
   }
 
@@ -277,9 +268,29 @@ export default class EditPointView extends AbstractStatefulView {
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    if (this.#onFormSubmit) {
-      this.#onFormSubmit(this._state);
+
+    const inputValue = this.element.querySelector('.event__input--destination').value;
+
+    const isValid = this.#destinations.some(
+      (destination) => destination.name === inputValue
+    );
+
+    if (!isValid) {
+      return;
     }
+
+    const selectedDestination = this.#destinations.find(
+      (destination) => destination.name === inputValue
+    );
+
+    this._setState({
+      destination: {
+        ...selectedDestination,
+        pictures: selectedDestination.pictures.map((p) => ({...p}))
+      }
+    });
+
+    this.#onFormSubmit(this._state);
   };
 
   #rollupClickHandler = (evt) => {
@@ -324,15 +335,13 @@ export default class EditPointView extends AbstractStatefulView {
     this.element.querySelector('.event__type-group').addEventListener('change', this.#typeChangeHandler);
     this.element.querySelector('.event__input--destination').addEventListener('change', this.#destinationChangeHandler);
     this.element.querySelector('.event__available-offers')?.addEventListener('change', this.#offersChangeHandler);
+    this.element.querySelector('.event__reset-btn').addEventListener('click', this.#deleteClickHandler);
+    this.element.querySelector('.event__input--price').addEventListener('input', this.#priceChangeHandler);
     this.#setDatepicker();
   }
 
   #offersChangeHandler = (evt) => {
-    const offerId = Number(evt.target.value);
-
-    /*const newOffers = evt.target.checked
-      ? this._state.offers.push(...)
-      : this._state.offers.filter(...);*/
+    const offerId = evt.target.value;
 
     this._setState({
       offers: this._state.offers.map((offer) => offer.id === offerId
@@ -395,4 +404,18 @@ export default class EditPointView extends AbstractStatefulView {
 
     super.removeElement();
   }
+
+  #deleteClickHandler = (evt) => {
+    evt.preventDefault();
+
+    if (this.#onDeleteClick) {
+      this.#onDeleteClick(this._state);
+    }
+  };
+
+  #priceChangeHandler = (evt) => {
+    this._setState({
+      basePrice: Number(evt.target.value)
+    });
+  };
 }

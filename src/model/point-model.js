@@ -32,13 +32,17 @@ export default class PointModel extends Observable {
       this.#points = points.map(PointAdapter.adaptToClient);
       this.#destinations = destinations;
       this.#offers = offers;
-    } catch {
+
+      this._notify();
+    } catch (err) {
       this.#points = [];
       this.#destinations = [];
       this.#offers = [];
-    }
 
-    this._notify();
+      this._notify();
+
+      throw err;
+    }
   }
 
   setPoints(updateType, newPoints) {

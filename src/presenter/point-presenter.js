@@ -1,4 +1,4 @@
-import {render, replace, remove} from '../framework/render.js';
+import {render, replace, remove, RenderPosition} from '../framework/render.js';
 import PointView from '../view/point-view.js';
 import EditPointView from '../view/edit-point-view.js';
 import {UserAction, UpdateType} from '../const.js';
@@ -53,7 +53,7 @@ export default class PointPresenter {
     });
 
     if (prevPointComponent === null || prevEditPointComponent === null) {
-      render(this.#pointComponent, this.#container);
+      render(this.#pointComponent, this.#container, RenderPosition.AFTERBEGIN);
 
       if (!this.#point.id) {
         this.#replacePointToForm();
@@ -75,21 +75,50 @@ export default class PointPresenter {
     }
   }
 
-  #handleFormSubmit = (updatedPoint) => {
+  #handleFormSubmit = async (updatedPoint) => {
+    this.setSaving();
+
     if (!this.#point.id) {
-      this.#replaceFormToPoint();
-      this.#onDataChange(UserAction.ADD_POINT, updatedPoint, UpdateType.MINOR);
+      await this.#onDataChange(UserAction.ADD_POINT, updatedPoint, UpdateType.MINOR);
       return;
     }
 
-    this.#onDataChange(UserAction.UPDATE_POINT, updatedPoint, UpdateType.MINOR);
-    this.#replaceFormToPoint();
+    await this.#onDataChange(UserAction.UPDATE_POINT, updatedPoint, UpdateType.MINOR);
   };
 
   resetView() {
     if (this.#mode !== Mode.DEFAULT) {
       this.#replaceFormToPoint();
     }
+  }
+
+  setSaving() {
+    this.#editPointComponent.updateElement({
+      ...this.#editPointComponent._state,
+      isDisabled: true,
+      isSaving: true
+    });
+  }
+
+  setDeleting() {
+    this.#editPointComponent.updateElement({
+      ...this.#editPointComponent._state,
+      isDisabled: true,
+      isDeleting: true
+    });
+  }
+
+  setAborting() {
+    const resetFormState = {
+      ...this.#editPointComponent._state,
+      isDisabled: false,
+      isSaving: false,
+      isDeleting: false
+    };
+
+    this.#editPointComponent.updateElement(resetFormState);
+
+    this.#editPointComponent.shake();
   }
 
   #replacePointToForm = () => {
@@ -157,6 +186,8 @@ export default class PointPresenter {
   }
 
   #handleDeleteClick = (point) => {
+    this.setDeleting();
+
     this.#onDataChange(UserAction.DELETE_POINT, point, UpdateType.MINOR);
   };
 }

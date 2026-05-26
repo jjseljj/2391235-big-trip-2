@@ -38,4 +38,14 @@ function formatDuration(dateFrom, dateTo) {
   return `${minutes}M`;
 }
 
-export {formatDate, formatTime, formatPointDate, formatDuration};
+function humanizeTripInfoDate(date) {
+  return date ? dayjs(date).format('MMM D') : '';
+}
+
+export {
+  formatDate,
+  formatTime,
+  formatPointDate,
+  formatDuration,
+  humanizeTripInfoDate
+};

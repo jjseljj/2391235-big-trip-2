@@ -53,7 +53,11 @@ export default class PointPresenter {
     });
 
     if (prevPointComponent === null || prevEditPointComponent === null) {
-      render(this.#pointComponent, this.#container, RenderPosition.BEFOREEND);
+      render(
+        this.#pointComponent,
+        this.#container,
+        !this.#point.id ? RenderPosition.AFTERBEGIN : RenderPosition.BEFOREEND
+      );
 
       if (!this.#point.id) {
         this.#replacePointToForm();

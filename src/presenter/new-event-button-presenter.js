@@ -29,6 +29,5 @@ export default class NewEventButtonPresenter {
 
   #handleClick = () => {
     this.#onClick();
-    this.toggleDisabledState(true);
   };
 }

@@ -7,6 +7,7 @@ import TripEventsListView from '../view/trip-events-list-view.js';
 import {sortPointByDay, sortPointByTime, sortPointByPrice} from '../utils/point.js';
 import {filterConfig, emptyListMessages} from '../const/filter.js';
 import LoadingView from '../view/loading-view.js';
+import TripInfoView from '../view/trip-info-view.js';
 
 export default class TripPresenter {
   #tripEventsContainer = null;
@@ -21,9 +22,18 @@ export default class TripPresenter {
   #onNewPointDestroy = null;
   #newPointPresenter = null;
   #tripEventsListComponent = new TripEventsListView();
+  #tripInfoComponent = null;
+  #tripMainContainer = null;
 
-  constructor({tripEventsContainer, pointModel, filterModel, onNewPointDestroy}) {
+  constructor({
+    tripEventsContainer,
+    tripMainContainer,
+    pointModel,
+    filterModel,
+    onNewPointDestroy
+  }) {
     this.#tripEventsContainer = tripEventsContainer;
+    this.#tripMainContainer = tripMainContainer;
     this.#pointModel = pointModel;
     this.#filterModel = filterModel;
     this.#filterModel.addObserver(this.#handleModelEvent);
@@ -69,6 +79,8 @@ export default class TripPresenter {
 
   init() {
     this.#clearLoading();
+    this.#renderTripInfo();
+
     render(this.#tripEventsListComponent, this.#tripEventsContainer);
     this.#tripEventsListContainer = this.#tripEventsListComponent.element;
 
@@ -158,6 +170,8 @@ export default class TripPresenter {
           const nextPoint = this.#createPointFromView(updatedPoint);
 
           await this.#pointModel.addPoint(updateType, nextPoint);
+          this.#newPointPresenter.destroy();
+          this.#newPointPresenter = null;
           this.#onNewPointDestroy?.();
           break;
         }
@@ -232,6 +246,7 @@ export default class TripPresenter {
   }
 
   #handleModelEvent = (updateType, data) => {
+    this.#renderTripInfo();
     switch (updateType) {
       case UpdateType.PATCH:
         this.#pointPresenters.get(data.id).init(this.#createPointForView(data));
@@ -258,9 +273,15 @@ export default class TripPresenter {
 
   createPoint() {
     const defaultDestination = this.#pointModel.destinations[0];
+
     this.#handleModeChange();
 
-    this.#filterModel.setFilter(FilterType.EVERYTHING);
+    if (this.#filterModel.filter !== FilterType.EVERYTHING) {
+      this.#filterModel.setFilter(FilterType.EVERYTHING);
+      return;
+    }
+
+    const defaultOffers = this.#pointModel.offers.find((item) => item.type === 'flight')?.offers || [];
 
     this.#newPointPresenter = new PointPresenter({
       container: this.#tripEventsListContainer,
@@ -282,7 +303,26 @@ export default class TripPresenter {
       dateTo: new Date(),
       basePrice: 0,
       isFavorite: false,
-      offers: []
+      offers: defaultOffers.map((offer) => ({
+        ...offer,
+        isChecked: false
+      }))
     });
+  }
+
+  #renderTripInfo() {
+    if (this.#tripInfoComponent) {
+      remove(this.#tripInfoComponent);
+    }
+
+    const sortedPoints = this.#pointModel.points
+      .map((point) => this.#createPointForView(point))
+      .sort((pointA, pointB) => new Date(pointA.dateFrom) - new Date(pointB.dateFrom));
+
+    this.#tripInfoComponent = new TripInfoView({
+      points: sortedPoints
+    });
+
+    render(this.#tripInfoComponent, this.#tripMainContainer, RenderPosition.AFTERBEGIN);
   }
 }

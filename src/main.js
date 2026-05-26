@@ -3,7 +3,7 @@ import PointModel from './model/point-model.js';
 import FilterModel from './model/filter-model.js';
 import FilterPresenter from './presenter/filter-presenter.js';
 import NewEventButtonPresenter from './presenter/new-event-button-presenter.js';
-import {tripControlsFiltersContainer, tripEventsContainer} from './const/dom-elements.js';
+import {tripControlsFiltersContainer, tripEventsContainer, tripInfoContainer} from './const/dom-elements.js';
 import ApiService from './api/api-service.js';
 
 const apiService = new ApiService(
@@ -24,6 +24,7 @@ let newEventButtonPresenter = null;
 
 const tripPresenter = new TripPresenter({
   tripEventsContainer,
+  tripMainContainer: tripInfoContainer,
   pointModel,
   filterModel,
   onNewPointDestroy: () => {
@@ -37,7 +38,7 @@ newEventButtonPresenter = new NewEventButtonPresenter({
 });
 
 newEventButtonPresenter.init();
-newEventButtonPresenter.toggleDisabledState(true);
+newEventButtonPresenter.toggleDisabledState(false);
 
 filterPresenter.init();
 tripPresenter.renderLoading();

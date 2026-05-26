@@ -1,18 +1,15 @@
-import {points} from '../mocks/points.js';
-import {destinations} from '../mocks/destinations.js';
-import {offers} from '../mocks/offers.js';
-import {adaptPointToClient} from '../adapter/point-adapter.js';
 import Observable from '../framework/observable.js';
-//import {UpdateType} from '../const.js';
-
+import PointAdapter from '../api/point-adapter.js';
 export default class PointModel extends Observable {
-  constructor() {
-    super();
-  }
+  #apiService = null;
+  #points = [];
+  #destinations = [];
+  #offers = [];
 
-  #points = points.map(adaptPointToClient);
-  #destinations = destinations;
-  #offers = offers;
+  constructor({apiService}) {
+    super();
+    this.#apiService = apiService;
+  }
 
   get points() {
     return this.#points;
@@ -26,12 +23,34 @@ export default class PointModel extends Observable {
     return this.#offers;
   }
 
+  async init() {
+    try {
+      const points = await this.#apiService.points;
+      const destinations = await this.#apiService.destinations;
+      const offers = await this.#apiService.offers;
+
+      this.#points = points.map(PointAdapter.adaptToClient);
+      this.#destinations = destinations;
+      this.#offers = offers;
+
+      this._notify();
+    } catch (err) {
+      this.#points = [];
+      this.#destinations = [];
+      this.#offers = [];
+
+      this._notify();
+
+      throw err;
+    }
+  }
+
   setPoints(updateType, newPoints) {
-    this.#points = newPoints.map(adaptPointToClient);
+    this.#points = newPoints;
     this._notify(updateType, this.#points);
   }
 
-  updatePoint(updateType, updatedPoint) {
+  async updatePoint(updateType, updatedPoint) {
     const index = this.#points.findIndex(
       (point) => point.id === updatedPoint.id
     );
@@ -40,13 +59,16 @@ export default class PointModel extends Observable {
       throw new Error('Can\'t update unexisting point');
     }
 
+    const response = await this.#apiService.updatePoint(updatedPoint);
+    const adaptedPoint = PointAdapter.adaptToClient(response);
+
     this.#points = [
       ...this.#points.slice(0, index),
-      updatedPoint,
+      adaptedPoint,
       ...this.#points.slice(index + 1)
     ];
 
-    this._notify(updateType, updatedPoint);
+    this._notify(updateType, adaptedPoint);
   }
 
   addPoint(updateType, newPoint) {
@@ -72,3 +94,5 @@ export default class PointModel extends Observable {
     this._notify(updateType, pointToDelete);
   }
 }
+
+

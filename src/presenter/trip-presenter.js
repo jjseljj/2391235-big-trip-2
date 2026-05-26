@@ -6,27 +6,47 @@ import {FilterType, SortType, UserAction, UpdateType} from '../const.js';
 import TripEventsListView from '../view/trip-events-list-view.js';
 import {sortPointByDay, sortPointByTime, sortPointByPrice} from '../utils/point.js';
 import {filterConfig, emptyListMessages} from '../const/filter.js';
+import LoadingView from '../view/loading-view.js';
+import NewEventButtonView from '../view/new-event-button-view.js';
 
 export default class TripPresenter {
   #tripEventsContainer = null;
   #tripEventsListContainer = null;
+  #tripMainContainer = null;
   #pointModel = null;
   #filterModel = null;
   #pointPresenters = new Map();
   #currentSortType = SortType.DAY;
   #sortComponent = null;
   #emptyComponent = null;
-  #onNewPointDestroy = null;
+  #loadingComponent = new LoadingView();
   #newPointPresenter = null;
   #tripEventsListComponent = new TripEventsListView();
+  #newEventButtonComponent = null;
+  #tripInfoContainer = null;
 
-  constructor({tripEventsContainer, pointModel, filterModel, onNewPointDestroy}) {
+  constructor({
+    tripInfoContainer,
+    tripEventsContainer,
+    tripMainContainer,
+    pointModel,
+    filterModel
+  }) {
+    this.#tripInfoContainer = tripInfoContainer;
     this.#tripEventsContainer = tripEventsContainer;
+    this.#tripMainContainer = tripMainContainer;
     this.#pointModel = pointModel;
     this.#filterModel = filterModel;
     this.#filterModel.addObserver(this.#handleModelEvent);
     this.#pointModel.addObserver(this.#handleModelEvent);
-    this.#onNewPointDestroy = onNewPointDestroy;
+  }
+
+  renderLoading() {
+    render(this.#loadingComponent, this.#tripEventsContainer);
+  }
+
+  #clearLoading() {
+    remove(this.#loadingComponent);
   }
 
   #createPointForView(point) {
@@ -58,6 +78,16 @@ export default class TripPresenter {
   }
 
   init() {
+    this.#clearLoading();
+
+    if (!this.#newEventButtonComponent) {
+      this.#newEventButtonComponent = new NewEventButtonView({
+        onClick: this.#createPoint
+      });
+
+      render(this.#newEventButtonComponent, this.#tripMainContainer);
+    }
+
     render(this.#tripEventsListComponent, this.#tripEventsContainer);
     this.#tripEventsListContainer = this.#tripEventsListComponent.element;
 
@@ -121,8 +151,7 @@ export default class TripPresenter {
   }
 
   #createPointFromView(updatedPoint) {
-    return {
-      id: updatedPoint.id,
+    const point = {
       type: updatedPoint.type,
       dateFrom: updatedPoint.dateFrom,
       dateTo: updatedPoint.dateTo,
@@ -133,32 +162,51 @@ export default class TripPresenter {
         .filter((offer) => offer.isChecked)
         .map((offer) => offer.id)
     };
+
+    if (updatedPoint.id) {
+      point.id = updatedPoint.id;
+    }
+
+    return point;
   }
 
-  #handlePointChange = (userAction, updatedPoint, updateType) => {
-    switch (userAction) {
-      case UserAction.ADD_POINT: {
-        this.#onNewPointDestroy?.();
-        const nextPoint = this.#createPointFromView({
-          ...updatedPoint,
-          id: crypto.randomUUID()
-        });
+  #handlePointChange = async (userAction, updatedPoint, updateType) => {
+    try {
+      switch (userAction) {
+        case UserAction.ADD_POINT: {
+          const nextPoint = this.#createPointFromView(updatedPoint);
 
-        this.#pointModel.addPoint(updateType, nextPoint);
-        break;
+          await this.#pointModel.addPoint(updateType, nextPoint);
+          this.#newEventButtonComponent.toggleDisabledState(false);
+          break;
+        }
+        case UserAction.UPDATE_POINT: {
+          const nextPoint = this.#createPointFromView(updatedPoint);
+
+          await this.#pointModel.updatePoint(updateType, nextPoint);
+          break;
+        }
+
+        case UserAction.DELETE_POINT: {
+          const pointToDelete = this.#createPointFromView(updatedPoint);
+
+          await this.#pointModel.deletePoint(updateType, pointToDelete);
+          break;
+        }
       }
-      case UserAction.UPDATE_POINT: {
-        const nextPoint = this.#createPointFromView(updatedPoint);
-
-        this.#pointModel.updatePoint(updateType, nextPoint);
-        break;
+    }catch {
+      if (userAction === UserAction.ADD_POINT && this.#newPointPresenter) {
+        this.#newPointPresenter.setAborting();
+        return;
       }
 
-      case UserAction.DELETE_POINT: {
-        const pointToDelete = this.#createPointFromView(updatedPoint);
+      if (userAction === UserAction.UPDATE_POINT) {
+        this.#pointPresenters.get(updatedPoint.id)?.setAborting();
+        return;
+      }
 
-        this.#pointModel.deletePoint(updateType, pointToDelete);
-        break;
+      if (userAction === UserAction.DELETE_POINT) {
+        this.#pointPresenters.get(updatedPoint.id)?.setAborting();
       }
     }
   };
@@ -185,7 +233,15 @@ export default class TripPresenter {
     }
   }
 
+  #clearNewPoint() {
+    if (this.#newPointPresenter) {
+      this.#newPointPresenter.destroy();
+      this.#newPointPresenter = null;
+    }
+  }
+
   #clearBoard({resetSortType = false} = {}) {
+    this.#clearNewPoint();
     this.#clearPointList();
     this.#clearEmptyList();
     this.#clearSort();
@@ -227,8 +283,12 @@ export default class TripPresenter {
     }
   }
 
-  createPoint() {
+  #createPoint = () => {
+    const defaultDestination = this.#pointModel.destinations[0];
+
     this.#handleModeChange();
+
+    this.#newEventButtonComponent.toggleDisabledState(true);
 
     this.#filterModel.setFilter(FilterType.EVERYTHING);
 
@@ -238,17 +298,15 @@ export default class TripPresenter {
       offersByType: this.#pointModel.offers,
       onModeChange: this.#handleModeChange,
       onDataChange: this.#handlePointChange,
-      onDestroy: this.#onNewPointDestroy
+      onDestroy: () => this.#newEventButtonComponent.toggleDisabledState(false)
     });
 
     this.#newPointPresenter.init({
       id: null,
       type: 'flight',
       destination: {
-        id: null,
-        name: '',
-        description: '',
-        pictures: []
+        ...defaultDestination,
+        pictures: defaultDestination.pictures.map((picture) => ({...picture}))
       },
       dateFrom: new Date(),
       dateTo: new Date(),
@@ -256,5 +314,5 @@ export default class TripPresenter {
       isFavorite: false,
       offers: []
     });
-  }
+  };
 }

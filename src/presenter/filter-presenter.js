@@ -15,6 +15,7 @@ export default class FilterPresenter {
     this.#filterModel = filterModel;
 
     this.#filterModel.addObserver(this.#handleModelChange);
+    this.#pointModel.addObserver(this.#handleModelChange);
   }
 
   init() {
@@ -64,7 +65,9 @@ export default class FilterPresenter {
   };
 
   #handleModelChange = () => {
-    remove(this.#filterComponent);
+    if (this.#filterComponent) {
+      remove(this.#filterComponent);
+    }
     this.init();
   };
 }

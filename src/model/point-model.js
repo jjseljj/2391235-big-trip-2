@@ -25,9 +25,11 @@ export default class PointModel extends Observable {
 
   async init() {
     try {
-      const points = await this.#apiService.points;
-      const destinations = await this.#apiService.destinations;
-      const offers = await this.#apiService.offers;
+      const [points, destinations, offers] = await Promise.all([
+        this.#apiService.points,
+        this.#apiService.destinations,
+        this.#apiService.offers
+      ]);
 
       this.#points = points.map(PointAdapter.adaptToClient);
       this.#destinations = destinations;

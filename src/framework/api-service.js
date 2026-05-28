@@ -26,7 +26,9 @@ export default class ApiService {
     body = null,
     headers = new Headers(),
   }) {
-    headers.append('Authorization', this._authorization);
+    if (this._authorization) {
+      headers.append('Authorization', this._authorization);
+    }
 
     const response = await fetch(
       `${this._endPoint}/${url}`,

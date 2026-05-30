@@ -16,7 +16,7 @@ export default class NewEventButtonPresenter {
       onClick: this.#handleClick
     });
 
-    render(this.#buttonComponent, this.#container, RenderPosition.AFTEREND);
+    render(this.#buttonComponent, this.#container, RenderPosition.BEFOREEND);
   }
 
   destroy() {

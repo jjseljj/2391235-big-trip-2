@@ -5,6 +5,7 @@ export default class PointModel extends Observable {
   #points = [];
   #destinations = [];
   #offers = [];
+  #isLoadingError = false;
 
   constructor({apiService}) {
     super();
@@ -23,6 +24,10 @@ export default class PointModel extends Observable {
     return this.#offers;
   }
 
+  get isLoadingError() {
+    return this.#isLoadingError;
+  }
+
   async init() {
     try {
       const [points, destinations, offers] = await Promise.all([
@@ -34,10 +39,12 @@ export default class PointModel extends Observable {
       this.#points = points.map(PointAdapter.adaptToClient);
       this.#destinations = destinations;
       this.#offers = offers;
+      this.#isLoadingError = false;
     } catch {
       this.#points = [];
       this.#destinations = [];
       this.#offers = [];
+      this.#isLoadingError = true;
     }
 
     this._notify();

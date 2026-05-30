@@ -254,11 +254,13 @@ export default class TripPresenter {
 
       case UpdateType.MINOR:
         this.#clearBoard();
+        this.#tripEventsListComponent = new TripEventsListView();
         this.init();
         break;
 
       case UpdateType.MAJOR:
         this.#clearBoard({resetSortType: true});
+        this.#tripEventsListComponent = new TripEventsListView();
         this.init();
         break;
     }
@@ -272,9 +274,15 @@ export default class TripPresenter {
   }
 
   createPoint() {
-    const defaultDestination = this.#pointModel.destinations[0];
+    const defaultDestination = {
+      id: null,
+      name: '',
+      description: '',
+      pictures: []
+    };
 
     this.#handleModeChange();
+    this.#clearEmptyList();
 
     if (this.#filterModel.filter !== FilterType.EVERYTHING) {
       this.#filterModel.setFilter(FilterType.EVERYTHING);
@@ -289,18 +297,28 @@ export default class TripPresenter {
       offersByType: this.#pointModel.offers,
       onModeChange: this.#handleModeChange,
       onDataChange: this.#handlePointChange,
-      onDestroy: this.#onNewPointDestroy
+      onDestroy: () => {
+        this.#newPointPresenter = null;
+        this.#onNewPointDestroy?.();
+
+        if (this.#points.length === 0) {
+          const filterType = this.#filterModel.filter;
+
+          this.#emptyComponent = new EmptyPointListView({
+            message: emptyListMessages[filterType]
+          });
+
+          render(this.#emptyComponent, this.#tripEventsListContainer);
+        }
+      }
     });
 
     this.#newPointPresenter.init({
       id: null,
       type: 'flight',
-      destination: {
-        ...defaultDestination,
-        pictures: defaultDestination.pictures.map((picture) => ({...picture}))
-      },
-      dateFrom: new Date(),
-      dateTo: new Date(),
+      destination: defaultDestination,
+      dateFrom: null,
+      dateTo: null,
       basePrice: 0,
       isFavorite: false,
       offers: defaultOffers.map((offer) => ({
@@ -311,8 +329,16 @@ export default class TripPresenter {
   }
 
   #renderTripInfo() {
-    if (this.#tripInfoComponent) {
-      remove(this.#tripInfoComponent);
+    if (this.#tripInfoComponent !== null) {
+      if (this.#tripInfoComponent.element !== null) {
+        remove(this.#tripInfoComponent);
+      }
+
+      this.#tripInfoComponent = null;
+    }
+
+    if (this.#pointModel.points.length === 0) {
+      return;
     }
 
     const sortedPoints = this.#pointModel.points

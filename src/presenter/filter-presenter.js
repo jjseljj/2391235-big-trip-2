@@ -37,7 +37,7 @@ export default class FilterPresenter {
         type: FilterType.EVERYTHING,
         name: 'Everything',
         isChecked: this.#filterModel.filter === FilterType.EVERYTHING,
-        isDisabled: false
+        isDisabled: points.length === 0
       },
       {
         type: FilterType.FUTURE,

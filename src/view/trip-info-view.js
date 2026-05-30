@@ -1,6 +1,8 @@
 import AbstractView from '../framework/view/abstract-view.js';
 import {humanizeTripInfoDate} from '../utils/date.js';
 
+const MAX_DISPLAYED_ROUTE_POINTS = 3;
+
 function createRouteTemplate(points) {
   if (points.length === 0) {
     return '';
@@ -8,7 +10,7 @@ function createRouteTemplate(points) {
 
   const cities = points.map((point) => point.destination.name);
 
-  if (cities.length > 3) {
+  if (cities.length > MAX_DISPLAYED_ROUTE_POINTS) {
     return `${cities[0]} &mdash; ${cities[cities.length - 1]}`;
   }
 
@@ -37,6 +39,10 @@ function calculateTripPrice(points) {
 }
 
 function createTripInfoTemplate(points) {
+  if (points.length === 0) {
+    return '';
+  }
+
   return `
     <section class="trip-main__trip-info trip-info">
       <div class="trip-info__main">

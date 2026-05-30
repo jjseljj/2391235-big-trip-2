@@ -49,7 +49,8 @@ export default class PointPresenter {
       offersByType: this.#offersByType,
       onFormSubmit: this.#handleFormSubmit,
       onRollupClick: this.#replaceFormToPoint,
-      onDeleteClick: this.#handleDeleteClick
+      onDeleteClick: this.#handleDeleteClick,
+      isEditMode: Boolean(this.#point.id)
     });
 
     if (prevPointComponent === null || prevEditPointComponent === null) {
@@ -74,7 +75,7 @@ export default class PointPresenter {
       replace(this.#editPointComponent, prevEditPointComponent);
     }
 
-    if (!this.#point.id) {
+    if (!this.#point.id && this.#mode !== Mode.EDITING) {
       this.#replacePointToForm();
     }
   }
@@ -120,7 +121,9 @@ export default class PointPresenter {
       isDeleting: false
     };
 
-    this.#editPointComponent.updateElement(resetFormState);
+    if (this.#editPointComponent.element) {
+      this.#editPointComponent.updateElement(resetFormState);
+    }
 
     this.#editPointComponent.shake();
   }
@@ -141,7 +144,8 @@ export default class PointPresenter {
       offersByType: this.#offersByType,
       onFormSubmit: this.#handleFormSubmit,
       onRollupClick: this.#replaceFormToPoint,
-      onDeleteClick: this.#handleDeleteClick
+      onDeleteClick: this.#handleDeleteClick,
+      isEditMode: Boolean(this.#point.id)
     });
 
     replace(this.#editPointComponent, this.#pointComponent);
@@ -190,6 +194,11 @@ export default class PointPresenter {
   }
 
   #handleDeleteClick = (point) => {
+    if (!point.id) {
+      this.#replaceFormToPoint();
+      return;
+    }
+
     this.setDeleting();
 
     this.#onDataChange(UserAction.DELETE_POINT, point, UpdateType.MINOR);

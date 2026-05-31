@@ -84,6 +84,15 @@ export default class TripPresenter {
     render(this.#tripEventsListComponent, this.#tripEventsContainer);
     this.#tripEventsListContainer = this.#tripEventsListComponent.element;
 
+    if (this.#pointModel.isLoadingError) {
+      this.#emptyComponent = new EmptyPointListView({
+        message: 'Failed to load latest route information'
+      });
+
+      render(this.#emptyComponent, this.#tripEventsListContainer);
+      return;
+    }
+
     if (this.#points.length === 0) {
       const filterType = this.#filterModel.filter;
 

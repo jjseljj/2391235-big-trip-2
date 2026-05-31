@@ -28,7 +28,7 @@ const tripPresenter = new TripPresenter({
   pointModel,
   filterModel,
   onNewPointDestroy: () => {
-    newEventButtonPresenter.toggleDisabledState(false);
+    newEventButtonPresenter?.toggleDisabledState(false);
   }
 });
 
@@ -40,13 +40,14 @@ newEventButtonPresenter = new NewEventButtonPresenter({
   }
 });
 
-newEventButtonPresenter.init();
-newEventButtonPresenter.toggleDisabledState(false);
-
 filterPresenter.init();
 tripPresenter.renderLoading();
 
 pointModel.init().finally(() => {
   tripPresenter.init();
-  newEventButtonPresenter.toggleDisabledState(false);
+
+  if (!pointModel.isLoadingError) {
+    newEventButtonPresenter.init();
+    newEventButtonPresenter.toggleDisabledState(false);
+  }
 });

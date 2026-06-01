@@ -2,12 +2,9 @@ import TripPresenter from './presenter/trip-presenter.js';
 import PointModel from './model/point-model.js';
 import FilterModel from './model/filter-model.js';
 import FilterPresenter from './presenter/filter-presenter.js';
+import NewEventButtonPresenter from './presenter/new-event-button-presenter.js';
+import {tripControlsFiltersContainer, tripEventsContainer, tripMainContainer} from './const/dom-elements.js';
 import ApiService from './api/api-service.js';
-
-const tripInfoContainer = document.querySelector('.trip-main__trip-info');
-const tripControlsFiltersContainer = document.querySelector('.trip-controls__filters');
-const tripEventsContainer = document.querySelector('.trip-events');
-const tripMainContainer = document.querySelector('.trip-main');
 
 const apiService = new ApiService(
   'https://22.objects.htmlacademy.pro/big-trip',
@@ -23,12 +20,24 @@ const filterPresenter = new FilterPresenter({
   filterModel
 });
 
+let newEventButtonPresenter = null;
+
 const tripPresenter = new TripPresenter({
-  tripInfoContainer,
   tripEventsContainer,
   tripMainContainer,
   pointModel,
-  filterModel
+  filterModel,
+  onNewPointDestroy: () => {
+    newEventButtonPresenter?.toggleDisabledState(false);
+  }
+});
+
+newEventButtonPresenter = new NewEventButtonPresenter({
+  container: tripMainContainer,
+  onClick: () => {
+    tripPresenter.createPoint();
+    newEventButtonPresenter.toggleDisabledState(true);
+  }
 });
 
 filterPresenter.init();
@@ -36,4 +45,9 @@ tripPresenter.renderLoading();
 
 pointModel.init().finally(() => {
   tripPresenter.init();
+
+  if (!pointModel.isLoadingError) {
+    newEventButtonPresenter.init();
+    newEventButtonPresenter.toggleDisabledState(false);
+  }
 });

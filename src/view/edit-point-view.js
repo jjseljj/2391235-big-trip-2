@@ -13,7 +13,10 @@ const EMPTY_POINT = {
   dateFrom: '',
   dateTo: '',
   basePrice: 0,
-  offers: []
+  offers: [],
+  isDisabled: false,
+  isSaving: false,
+  isDeleting: false
 };
 
 function createTypeItemTemplate(currentType, type, formId) {
@@ -80,13 +83,13 @@ function createPicturesTemplate(pictures) {
 }
 
 function createDestinationTemplate(destination) {
-  if (!destination.name && !destination.description && !destination.pictures.length) {
+  if (!destination.description && !destination.pictures.length) {
     return '';
   }
 
   return `<section class="event__section event__section--destination">
     <h3 class="event__section-title event__section-title--destination">Destination</h3>
-    <p class="event__destination-description">${destination.description}</p>
+    ${destination.description ? `<p class="event__destination-description">${destination.description}</p>` : ''}
     ${createPicturesTemplate(destination.pictures)}
   </section>`;
 }
@@ -95,14 +98,37 @@ function createDestinationListTemplate(destinations) {
   return destinations.map((item) => `<option value="${item.name}"></option>`).join('');
 }
 
-function createEditPointTemplate(point, destinations, offersByType, formId) {
+function createRollupButtonTemplate(isEditMode) {
+  if (!isEditMode) {
+    return '';
+  }
+
+  return `<button class="event__rollup-btn"
+          type="button"
+          >
+    <span class="visually-hidden">Open event</span>
+  </button>`;
+}
+
+function createResetButtonText(isEditMode, isDeleting) {
+  if (!isEditMode) {
+    return 'Cancel';
+  }
+
+  return isDeleting ? 'Deleting...' : 'Delete';
+}
+
+function createEditPointTemplate(point, destinations, offersByType, formId, isEditMode) {
   const {
     type,
     destination,
     dateFrom,
     dateTo,
     basePrice,
-    offers
+    offers,
+    isDisabled,
+    isSaving,
+    isDeleting,
   } = point;
 
   const typeListTemplate = offersByType
@@ -112,7 +138,7 @@ function createEditPointTemplate(point, destinations, offersByType, formId) {
   const destinationListTemplate = createDestinationListTemplate(destinations);
 
   return (
-    `
+    `<li class="trip-events__item">
     <form class="event event--edit" action="#" method="post">
     <header class="event__header">
       <div class="event__type-wrapper">
@@ -208,18 +234,32 @@ function createEditPointTemplate(point, destinations, offersByType, formId) {
         >
       </div>
 
-      <button class="event__save-btn btn btn--blue" type="submit">Save</button>
-      <button class="event__reset-btn" type="reset">Delete</button>
-      <button class="event__rollup-btn" type="button">
-        <span class="visually-hidden">Open event</span>
+      <button
+        class="event__save-btn btn btn--blue"
+        type="submit"
+        ${isDisabled ? 'disabled' : ''}
+      >
+        ${isSaving ? 'Saving...' : 'Save'}
       </button>
+      <button
+        class="event__reset-btn"
+        type="reset"
+        ${isDisabled ? 'disabled' : ''}
+      >
+        ${createResetButtonText(isEditMode, isDeleting)}
+      </button>
+      ${createRollupButtonTemplate(isEditMode)}
     </header>
 
-    <section class="event__details">
-      ${createOffersTemplate(offers, formId)}
-      ${createDestinationTemplate(destination)}
-    </section>
+    ${offers.length || destination.description || destination.pictures.length ?
+      `
+      <section class="event__details">
+        ${createOffersTemplate(offers, formId)}
+        ${createDestinationTemplate(destination)}
+      </section>
+      ` : ''}
   </form>
+  </li>
   `
   );
 }
@@ -233,8 +273,9 @@ export default class EditPointView extends AbstractStatefulView {
   #datepickerFrom = null;
   #datepickerTo = null;
   #onDeleteClick = null;
+  isEditMode = null;
 
-  constructor({point, destinations, offersByType, onFormSubmit, onRollupClick, onDeleteClick} = {}) {
+  constructor({point, destinations, offersByType, onFormSubmit, onRollupClick, onDeleteClick, isEditMode = true} = {}) {
     super();
     this.#formId = crypto.randomUUID();
     this._setState(point ? {
@@ -251,11 +292,12 @@ export default class EditPointView extends AbstractStatefulView {
     this.#onFormSubmit = onFormSubmit;
     this.#onRollupClick = onRollupClick;
     this.#onDeleteClick = onDeleteClick;
+    this.isEditMode = isEditMode;
 
     this.element.addEventListener('submit', this.#formSubmitHandler);
-    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#rollupClickHandler);
+    this.element.querySelector('.event__rollup-btn')?.addEventListener('click', this.#rollupClickHandler);
     this.element.querySelector('.event__type-group').addEventListener('change', this.#typeChangeHandler);
-    this.element.querySelector('.event__input--destination').addEventListener('change', this.#destinationChangeHandler);
+    this.element.querySelector('.event__input--destination').addEventListener('input', this.#destinationChangeHandler);
     this.element.querySelector('.event__available-offers')?.addEventListener('change', this.#offersChangeHandler);
     this.element.querySelector('.event__reset-btn').addEventListener('click', this.#deleteClickHandler);
     this.element.querySelector('.event__input--price').addEventListener('input', this.#priceChangeHandler);
@@ -263,7 +305,7 @@ export default class EditPointView extends AbstractStatefulView {
   }
 
   get template() {
-    return createEditPointTemplate(this._state, this.#destinations, this.#offersByType, this.#formId);
+    return createEditPointTemplate(this._state, this.#destinations, this.#offersByType, this.#formId, this.isEditMode);
   }
 
   #formSubmitHandler = (evt) => {
@@ -276,6 +318,7 @@ export default class EditPointView extends AbstractStatefulView {
     );
 
     if (!isValid) {
+      this.shake();
       return;
     }
 
@@ -331,9 +374,9 @@ export default class EditPointView extends AbstractStatefulView {
 
   _restoreHandlers() {
     this.element.addEventListener('submit', this.#formSubmitHandler);
-    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#rollupClickHandler);
+    this.element.querySelector('.event__rollup-btn')?.addEventListener('click', this.#rollupClickHandler);
     this.element.querySelector('.event__type-group').addEventListener('change', this.#typeChangeHandler);
-    this.element.querySelector('.event__input--destination').addEventListener('change', this.#destinationChangeHandler);
+    this.element.querySelector('.event__input--destination').addEventListener('input', this.#destinationChangeHandler);
     this.element.querySelector('.event__available-offers')?.addEventListener('change', this.#offersChangeHandler);
     this.element.querySelector('.event__reset-btn').addEventListener('click', this.#deleteClickHandler);
     this.element.querySelector('.event__input--price').addEventListener('input', this.#priceChangeHandler);

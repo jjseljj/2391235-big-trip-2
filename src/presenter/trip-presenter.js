@@ -295,7 +295,6 @@ export default class TripPresenter {
 
     if (this.#filterModel.filter !== FilterType.EVERYTHING) {
       this.#filterModel.setFilter(FilterType.EVERYTHING);
-      return;
     }
 
     const defaultOffers = this.#pointModel.offers.find((item) => item.type === 'flight')?.offers || [];

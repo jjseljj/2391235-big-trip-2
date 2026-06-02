@@ -50,11 +50,6 @@ export default class PointModel extends Observable {
     this._notify();
   }
 
-  setPoints(updateType, newPoints) {
-    this.#points = newPoints;
-    this._notify(updateType, this.#points);
-  }
-
   async updatePoint(updateType, updatedPoint) {
     const index = this.#points.findIndex(
       (point) => point.id === updatedPoint.id
